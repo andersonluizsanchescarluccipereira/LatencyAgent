@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>br.com.ads</groupId>
     <artifactId>agent</artifactId>
-    <version>1.6</version> <!-- para publicar release no Packages -->
+    <version>1.7</version> <!-- para publicar release no Packages -->
     <packaging>jar</packaging>
 
     <properties>
