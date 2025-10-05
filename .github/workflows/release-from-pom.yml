@@ -1,0 +1,88 @@
+name: release-from-pom
+
+on:
+  push:
+    branches: [ "main", "master" ]   # ajuste se usa outro branch principal
+  workflow_dispatch:                 # permite rodar manualmente
+
+permissions:
+  contents: write                    # necessário para criar tags/releases
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0            # precisamos do histórico para lidar com tags
+
+      - name: Set up JDK 8 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+
+      - name: Extract version from pom.xml
+        id: ver
+        run: |
+          # Lê versão do POM raiz
+          VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+          # Normaliza versão snapshot -> suffix opcional
+          CLEAN_VERSION="${VERSION/-SNAPSHOT/}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "CLEAN_VERSION=$CLEAN_VERSION" >> $GITHUB_ENV
+          echo "TAG=v${CLEAN_VERSION}" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "clean_version=$CLEAN_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v${CLEAN_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Decide final tag (avoid collision)
+        id: tag
+        run: |
+          git fetch --tags --force
+          FINAL_TAG="${TAG}"
+
+          if git rev-parse "${FINAL_TAG}" >/dev/null 2>&1; then
+            # Se já existe v<versão>, criamos uma tag derivada baseada no run_number
+            FINAL_TAG="${TAG}-build.${GITHUB_RUN_NUMBER}"
+            echo "PRERELEASE=true" >> $GITHUB_ENV
+          else
+            echo "PRERELEASE=false" >> $GITHUB_ENV
+          fi
+
+          echo "FINAL_TAG=${FINAL_TAG}" >> $GITHUB_ENV
+          echo "final_tag=${FINAL_TAG}" >> $GITHUB_OUTPUT
+          echo "Final tag será: ${FINAL_TAG}"
+
+      - name: Build with Maven (gera .jar / shade se configurado)
+        run: mvn -B -DskipTests package
+
+      - name: Create Git tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${FINAL_TAG}" -m "Release ${FINAL_TAG} (from pom ${VERSION})"
+          git push origin "${FINAL_TAG}"
+
+      - name: Upload build artifacts (para histórico do job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: jars
+          path: |
+            target/*-shaded.jar
+            target/*.jar
+          if-no-files-found: warn
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.FINAL_TAG }}
+          name: ${{ env.FINAL_TAG }}
+          files: |
+            target/*-shaded.jar
+            target/*.jar
+          generate_release_notes: true
+          prerelease: ${{ env.PRERELEASE == 'true' }}
