@@ -17,13 +17,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
+ *
+ * @author andersonluizpereira
  * Java Agent para medir latência de métodos em tempo de execução.
  * Suporte a modo VERBOSE e exportação em JSON.
  * Compatível com Java 8–21.
  */
 public class LatencyAgent {
 
-    // 🔧 Configurações via -javaagent:args
     public static class Config {
         public final String[] includes;
         public final String[] excludes;
@@ -68,7 +69,6 @@ public class LatencyAgent {
         }
     }
 
-    // 🧠 Classe para armazenar métricas
     public static class Stats {
         public static class Item {
             public final LongAdder calls = new LongAdder();
@@ -95,7 +95,6 @@ public class LatencyAgent {
             if (nanos > it.maxNanos) it.maxNanos = nanos;
         }
 
-        /** Imprime no console e salva JSON */
         public static void dump() {
             System.err.println("\n=== MÉTODOS MAIS LENTOS (por tempo total acumulado) ===");
             System.err.printf("%-8s  %-8s  %-12s  %-12s  %s%n",
@@ -160,7 +159,6 @@ public class LatencyAgent {
         }
     }
 
-    // 🎯 Intercepta entrada/saída dos métodos
     public static class TimingAdvice {
         @Advice.OnMethodEnter
         public static long onEnter() {
@@ -175,7 +173,6 @@ public class LatencyAgent {
         }
     }
 
-    // 🚀 Método principal do agente
     public static void premain(String agentArgs, Instrumentation inst) {
         Config cfg = new Config(agentArgs);
         Stats.configure(cfg.minNanos, cfg.top, cfg.outputFile);

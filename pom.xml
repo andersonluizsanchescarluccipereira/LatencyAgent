@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>br.com.ads</groupId>
     <artifactId>agent</artifactId>
-    <version>1.3-SNAPSHOT</version>
+    <version>1.4-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -30,7 +30,6 @@
 
     <build>
         <plugins>
-            <!-- 🔹 Garante o MANIFEST correto -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -45,8 +44,6 @@
                     </archive>
                 </configuration>
             </plugin>
-
-            <!-- 🔹 Opcional: empacota dependências dentro do mesmo JAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
