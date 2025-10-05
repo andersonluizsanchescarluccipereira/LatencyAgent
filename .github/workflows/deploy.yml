@@ -1,0 +1,29 @@
+name: deploy-maven-github-packages
+
+on:
+  push:
+    tags: [ "v*" ]        # publica ao criar tag v1.6, v1.7, ...
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write         # <<< necessário para publicar no Packages
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 8 + Maven server creds
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+          server-id: github                 # = <id> do distributionManagement
+          server-username: GITHUB_ACTOR     # usa o token padrão do job
+          server-password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Deploy
+        run: mvn -B -DskipTests deploy

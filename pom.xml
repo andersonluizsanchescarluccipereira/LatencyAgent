@@ -30,13 +30,12 @@
 
     <!-- AQUI: bloco no nível raiz do <project> -->
     <distributionManagement>
-        <!-- releases -->
         <repository>
-            <id>github</id>
+            <id>github</id> <!-- tem que casar com server-id do workflow -->
             <name>GitHub Packages</name>
             <url>https://maven.pkg.github.com/andersonluizsanchescarluccipereira/LatencyAgent</url>
         </repository>
-        <!-- (opcional) snapshots: use se publicar versões -SNAPSHOT -->
+        <!-- se publicar SNAPSHOT (ex.: 1.6-SNAPSHOT), pode repetir a mesma URL aqui: -->
         <!--
         <snapshotRepository>
           <id>github</id>
