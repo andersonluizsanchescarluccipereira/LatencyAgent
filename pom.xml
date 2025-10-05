@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>br.com.ads</groupId>
     <artifactId>agent</artifactId>
-    <version>1.5-SNAPSHOT</version>
+    <version>1.6</version> <!-- para publicar release no Packages -->
     <packaging>jar</packaging>
 
     <properties>
@@ -14,13 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <bytebuddy.version>1.14.12</bytebuddy.version>
     </properties>
-    <repositories>
-        <repository>
-            <id>github</id>
-            <name>GitHub Packages br.com.ads/agent</name>
-            <url>https://maven.pkg.github.com/andersonluizsanchescarluccipereira/LatencyAgent</url>
-        </repository>
-    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>net.bytebuddy</groupId>
@@ -33,6 +27,24 @@
             <version>${bytebuddy.version}</version>
         </dependency>
     </dependencies>
+
+    <!-- AQUI: bloco no nível raiz do <project> -->
+    <distributionManagement>
+        <!-- releases -->
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/andersonluizsanchescarluccipereira/LatencyAgent</url>
+        </repository>
+        <!-- (opcional) snapshots: use se publicar versões -SNAPSHOT -->
+        <!--
+        <snapshotRepository>
+          <id>github</id>
+          <name>GitHub Packages Snapshots</name>
+          <url>https://maven.pkg.github.com/andersonluizsanchescarluccipereira/LatencyAgent</url>
+        </snapshotRepository>
+        -->
+    </distributionManagement>
 
     <build>
         <plugins>
@@ -50,6 +62,7 @@
                     </archive>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -57,9 +70,7 @@
                 <executions>
                     <execution>
                         <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
+                        <goals><goal>shade</goal></goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>

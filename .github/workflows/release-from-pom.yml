@@ -1,62 +1,72 @@
-name: release-from-pom
+name: release-tag-deploy
 
 on:
   push:
-    branches: [ "main", "master" ]   # ajuste se seu branch principal é outro
+    branches: [ "main", "master" ]   # ajuste se necessário
   workflow_dispatch:
 
 permissions:
-  contents: write   # necessário para criar tag e release
+  contents: write    # criar tags/releases
+  packages: write    # publicar no GitHub Packages
 
 jobs:
-  build-and-release:
+  build-tag-release-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # precisamos de tags
+          fetch-depth: 0   # precisamos das tags
 
-      - name: Set up JDK 8 (Temurin)
+      - name: Set up JDK 8 (Temurin) + Maven server (github)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '8'
           cache: maven
+          server-id: github                   # casa com <distributionManagement>/<repository>/<id>
+          server-username: GITHUB_ACTOR       # usuário para 'settings.xml'
+          server-password: ${{ secrets.GITHUB_TOKEN }} # token com packages:write
 
       - name: Read version from pom.xml
         id: ver
         run: |
           VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
-          CLEAN_VERSION="${VERSION/-SNAPSHOT/}"
-          TAG="v${CLEAN_VERSION}"
-
+          CLEAN="${VERSION/-SNAPSHOT/}"
+          TAG="v${CLEAN}"
           echo "VERSION=${VERSION}"           >> $GITHUB_ENV
-          echo "CLEAN_VERSION=${CLEAN_VERSION}" >> $GITHUB_ENV
-          echo "TAG=${TAG}"                   >> $GITHUB_ENV
-
+          echo "CLEAN=${CLEAN}"               >> $GITHUB_ENV
+          echo "BASE_TAG=${TAG}"              >> $GITHUB_ENV
           echo "version=${VERSION}"           >> $GITHUB_OUTPUT
-          echo "clean=${CLEAN_VERSION}"       >> $GITHUB_OUTPUT
-          echo "tag=${TAG}"                   >> $GITHUB_OUTPUT
+          echo "clean=${CLEAN}"               >> $GITHUB_OUTPUT
+          echo "base_tag=${TAG}"              >> $GITHUB_OUTPUT
 
-      - name: Decide final tag (avoid collision)
-        id: decide
+      - name: Decide final tag (collision & SNAPSHOT handling)
+        id: tag
         run: |
           git fetch --tags --force
-          FINAL_TAG="${TAG}"
-          if git rev-parse "${FINAL_TAG}" >/dev/null 2>&1; then
-            FINAL_TAG="${TAG}-build.${GITHUB_RUN_NUMBER}"
-            echo "PRERELEASE=true" >> $GITHUB_ENV
-            echo "Tag ${TAG} existe; usando ${FINAL_TAG}"
-          else
-            echo "PRERELEASE=false" >> $GITHUB_ENV
-            echo "Usando tag ${FINAL_TAG}"
-          fi
-          echo "FINAL_TAG=${FINAL_TAG}" >> $GITHUB_ENV
-          echo "final_tag=${FINAL_TAG}" >> $GITHUB_OUTPUT
+          FINAL_TAG="${BASE_TAG}"
+          PRERELEASE=false
 
-      - name: Build with Maven (Java 8)
+          # Se já existe a tag base OU é SNAPSHOT, crie tag derivada
+          if git rev-parse "${FINAL_TAG}" >/dev/null 2>&1; then
+            PRERELEASE=true
+          fi
+          if [[ "${VERSION}" == *"-SNAPSHOT" ]]; then
+            PRERELEASE=true
+          fi
+
+          if [[ "${PRERELEASE}" == "true" ]]; then
+            FINAL_TAG="${BASE_TAG}-build.${GITHUB_RUN_NUMBER}"
+          fi
+
+          echo "FINAL_TAG=${FINAL_TAG}" >> $GITHUB_ENV
+          echo "PRERELEASE=${PRERELEASE}" >> $GITHUB_ENV
+          echo "final_tag=${FINAL_TAG}" >> $GITHUB_OUTPUT
+          echo "Tag final: ${FINAL_TAG} (prerelease=${PRERELEASE})"
+
+      - name: Build (Maven)
         run: mvn -B -DskipTests package
 
       - name: Create Git tag
@@ -66,7 +76,7 @@ jobs:
           git tag -a "${FINAL_TAG}" -m "Release ${FINAL_TAG} (from pom ${VERSION})"
           git push origin "${FINAL_TAG}"
 
-      - name: Upload artifacts (job history)
+      - name: Upload build artifacts (CI artifact)
         uses: actions/upload-artifact@v4
         with:
           name: jars
@@ -85,3 +95,6 @@ jobs:
             target/*.jar
           generate_release_notes: true
           prerelease: ${{ env.PRERELEASE == 'true' }}
+
+      - name: Deploy to GitHub Packages (mvn deploy)
+        run: mvn -B -DskipTests deploy
