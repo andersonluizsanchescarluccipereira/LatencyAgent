@@ -219,6 +219,15 @@ calls     avg(ms)   total(ms)    max(ms)      method
 - [ ] **Suporte a attach em runtime** (via `VirtualMachine.loadAgent` com `agentmain`)
 ---
 
+## Como usar o Java Agent
+
+### Download direto (recomendado para começar)
+1. Vá em **Releases** e baixe `agent-<versão>-shaded.jar`.
+2. Rode sua aplicação com:
+```bash
+java -javaagent:/caminho/agent-<versão>-shaded.jar=include=br.com.seuprojeto.,minMicros=200,top=10 \
+     -jar sua-aplicacao.jar
+
 ## Licença
 
 Defina a licença de sua preferência (por exemplo, MIT/Apache 2.0).  
