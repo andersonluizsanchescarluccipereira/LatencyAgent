@@ -22,8 +22,8 @@ jobs:
           java-version: '8'
           cache: maven
           server-id: github                 # = <id> do distributionManagement
-          server-username: GITHUB_ACTOR     # usa o token padrão do job
-          server-password: ${{ secrets.GITHUB_TOKEN }}
+          server-username: ${{ github.actor }}
+          server-password: ${{ secrets.GH_PACKAGES_TOKEN }}
 
       - name: Build & Deploy
         run: mvn -B -DskipTests deploy
